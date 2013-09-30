@@ -196,10 +196,37 @@ class BasicOrmTests extends QUnitTestCaseBase {
 		$this->assertEqual($objMilestone->Project->ManagerPerson->FirstName, "Karen", "Person 7 has first name of Karen");
 		
 		 $clauses = QQ::Clause(
-			QQ::Expand(QQN::Milestone()->Project->ManagerPerson),
+			QQ::ExpandAsArray (QQN::Project()->PersonAsTeamMember),
+			QQ::OrderBy (QQN::Project()->PersonAsTeamMember->Person->LastName, QQN::Project()->PersonAsTeamMember->Person->FirstName)
+		);
+		
+		// short reach
+		$objProject = 
+			Project::QuerySingle(
+				QQ::Equal (QQN::Project()->Id, 1),
+				$clauses
+			);
+			
+		$objPersonArray = $objProject->_PersonAsTeamMemberArray;
+		foreach ($objPersonArray as $item) {
+			$arrNamesOnly[] = $item->FirstName . " " . $item->LastName;
+		}
+		
+		$this->assertEqual($arrNamesOnly, array(
+			"Samantha Jones",
+			"Kendall Public",
+			"Alex Smith",
+			"Wendy Smith",
+			"Karen Wolfe")
+				, "Project Team Member expansion is correct");
+		
+		// long reach, mixed expansion types
+		$clauses = QQ::Clause(
+			QQ::Expand (QQN::Milestone()->Project),
 			QQ::ExpandAsArray (QQN::Milestone()->Project->PersonAsTeamMember),
 			QQ::OrderBy (QQN::Milestone()->Project->PersonAsTeamMember->Person->LastName, QQN::Milestone()->Project->PersonAsTeamMember->Person->FirstName)
 		);
+		
 		
 		$objMilestone = 
 			Milestone::QuerySingle(
@@ -213,12 +240,13 @@ class BasicOrmTests extends QUnitTestCaseBase {
 		}
 		
 		$this->assertEqual($arrNamesOnly, array(
+			"Samantha Jones",
 			"Kendall Public",
 			"Alex Smith",
 			"Wendy Smith",
-			"Karen Wolfe",
-			"Samantha Jones")
-		, "Project Team Member Expansion is correct");
+			"Karen Wolfe"
+			)
+		, "Long reach Milestone to Project Team Member expansion is correct");
 	}
 	
 	public function testHaving() {
