@@ -195,6 +195,30 @@ class BasicOrmTests extends QUnitTestCaseBase {
 		$this->assertTrue(!is_null($objMilestone->Project->ManagerPerson->FirstName), "Person 7 has a name");
 		$this->assertEqual($objMilestone->Project->ManagerPerson->FirstName, "Karen", "Person 7 has first name of Karen");
 		
+		 $clauses = QQ::Clause(
+			QQ::Expand(QQN::Milestone()->Project->ManagerPerson),
+			QQ::ExpandAsArray (QQN::Milestone()->Project->PersonAsTeamMember),
+			QQ::OrderBy (QQN::Milestone()->Project->PersonAsTeamMember->Person->LastName, QQN::Milestone()->Project->PersonAsTeamMember->Person->FirstName)
+		);
+		
+		$objMilestone = 
+			Milestone::QuerySingle(
+				QQ::Equal (QQN::Milestone()->Id, 1),
+				$clauses
+			);
+			
+		$objPersonArray = $objMilestone->Project->_PersonAsTeamMemberArray;
+		foreach ($objPersonArray as $item) {
+			$arrNamesOnly[] = $item->FirstName . " " . $item->LastName;
+		}
+		
+		$this->assertEqual($arrNamesOnly, array(
+			"Kendall Public",
+			"Alex Smith",
+			"Wendy Smith",
+			"Karen Wolfe",
+			"Samantha Jones")
+		, "Project Team Member Expansion is correct");
 	}
 	
 	public function testHaving() {
